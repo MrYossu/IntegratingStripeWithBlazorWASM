@@ -43,7 +43,8 @@ public class PaymentService {
         PaymentMethod = paymentMethodId,
         Confirm = true,
         ConfirmationMethod = "automatic",
-        ReturnUrl = "https://www.pixata.co.uk"
+        ReturnUrl = "https://www.pixata.co.uk",
+        PaymentMethodTypes = ["card"]
       };
 
       PaymentIntentService service = new();
