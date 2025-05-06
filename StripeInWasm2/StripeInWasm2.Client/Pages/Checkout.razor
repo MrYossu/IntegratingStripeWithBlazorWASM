@@ -1,0 +1,126 @@
+@page "/checkout"
+@using StripeInWasm2.Client.Services
+@using StripeInWasm2.Common.Models
+@inject StripeService StripeService
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<div class="container">
+  <h1>Checkout</h1>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Order Summary</h5>
+          <p class="card-text">Total: $@Amount.ToString("0.00")</p>
+
+          <EditForm Model="@this" OnSubmit="@ProcessPayment">
+            <div class="mb-3">
+              <label for="amount" class="form-label">Amount ($)</label>
+              <InputNumber id="amount" class="form-control" @bind-Value="Amount" @oninput="UpdatePaymentAmount" />
+            </div>
+
+            <div class="mb-3">
+              <label for="card-element" class="form-label">Card Details</label>
+              <div id="card-element" class="form-control">
+                <!-- Stripe Card Element will be mounted here -->
+              </div>
+              <div id="card-errors" class="text-danger mt-2"></div>
+            </div>
+
+            <div class="alert alert-danger @(string.IsNullOrEmpty(ErrorMessage) ? "d-none" : "")">
+              @ErrorMessage
+            </div>
+
+            <div class="alert alert-success @(!IsPaymentSuccessful ? "d-none" : "")">
+              Payment ID: @PaymentIntentId
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="payment-button" disabled="@IsProcessing">
+              @(IsProcessing ? "Processing..." : "Pay Now")
+            </button>
+          </EditForm>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@code {
+  private decimal Amount { get; set; } = 19.99m;
+  private bool IsProcessing { get; set; }
+  private bool IsPaymentSuccessful { get; set; }
+  private string ErrorMessage { get; set; } = "";
+  private string PaymentIntentId { get; set; } = "";
+  private IJSObjectReference? _jsModule;
+
+  protected override async Task OnInitializedAsync() =>
+    await base.OnInitializedAsync();
+
+  protected override async Task OnAfterRenderAsync(bool firstRender) {
+    if (firstRender) {
+      try {
+        // Load the JS helper first
+        _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/stripeHelper.js");
+
+        // Initialize Stripe Elements when the component is first rendered
+        await StripeService.InitializeStripe();
+
+        // Wait a brief moment to allow elements to initialize
+        await Task.Delay(500);
+
+        // Then update the payment amount
+        await UpdatePaymentAmount();
+      } catch (Exception ex) {
+        ErrorMessage = $"Error initializing payment: {ex.Message}";
+        StateHasChanged();
+      }
+    }
+  }
+
+  private async Task UpdatePaymentAmount() {
+    // Just logging the update - with Card Element we don't need to update the amount in the UI
+    if (_jsModule is not null) {
+      await _jsModule.InvokeVoidAsync("updatePaymentAmount", Amount);
+    }
+  }
+
+  private async Task ProcessPayment() {
+    try {
+      IsProcessing = true;
+      IsPaymentSuccessful = false;
+      ErrorMessage = "";
+      StateHasChanged();
+
+      // First, create a payment method using the card information
+      PaymentResult createPaymentMethodResult = await _jsModule!.InvokeAsync<PaymentResult>("createPaymentMethod");
+      // Parse the result
+
+      if (!createPaymentMethodResult.Success) {
+        ErrorMessage = $"Error creating payment method: {createPaymentMethodResult.ErrorMessage}";
+        return;
+      }
+      // Now send the payment method ID to the server to process the payment
+      PaymentResult result = await StripeService.SubmitPayment(createPaymentMethodResult.PaymentMethodId, (long)(Amount * 100));
+
+      if (result.Success) {
+        IsPaymentSuccessful = true;
+        PaymentIntentId = result.PaymentMethodId;
+      } else {
+        ErrorMessage = result.ErrorMessage;
+      }
+    } catch (Exception ex) {
+      ErrorMessage = $"Error processing payment: {ex.Message}";
+    } finally {
+      IsProcessing = false;
+      StateHasChanged();
+    }
+  }
+
+  public async ValueTask DisposeAsync() {
+    if (_jsModule is not null) {
+      await _jsModule.DisposeAsync();
+    }
+  }
+}
