@@ -124,12 +124,6 @@ export async function createPaymentMethod() {
   }
 }
 
-// This function is not needed anymore as we're using the card element directly
-export function updatePaymentAmount(amount) {
-  // No need to update amount with card element
-  console.log(`Payment amount: ${amount} (stored for server-side use)`);
-}
-
 export function cleanupStripe() {
   // Cleanup logic if needed
   stripe = null;

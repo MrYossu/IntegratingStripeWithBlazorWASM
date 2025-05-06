@@ -18,7 +18,7 @@
           <EditForm Model="@this" OnSubmit="@ProcessPayment">
             <div class="mb-3">
               <label for="amount" class="form-label">Amount ($)</label>
-              <InputNumber id="amount" class="form-control" @bind-Value="Amount" @oninput="UpdatePaymentAmount" />
+              <InputNumber id="amount" class="form-control" @bind-Value="Amount" />
             </div>
 
             <div class="mb-3">
@@ -61,28 +61,12 @@
   protected override async Task OnAfterRenderAsync(bool firstRender) {
     if (firstRender) {
       try {
-        // Load the JS helper first
         _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/stripeHelper.js");
-
-        // Initialize Stripe Elements when the component is first rendered
         await StripeService.InitializeStripe();
-
-        // Wait a brief moment to allow elements to initialize
-        await Task.Delay(500);
-
-        // Then update the payment amount
-        await UpdatePaymentAmount();
       } catch (Exception ex) {
         ErrorMessage = $"Error initializing payment: {ex.Message}";
         StateHasChanged();
       }
-    }
-  }
-
-  private async Task UpdatePaymentAmount() {
-    // Just logging the update - with Card Element we don't need to update the amount in the UI
-    if (_jsModule is not null) {
-      await _jsModule.InvokeVoidAsync("updatePaymentAmount", Amount);
     }
   }
 
@@ -92,18 +76,12 @@
       IsPaymentSuccessful = false;
       ErrorMessage = "";
       StateHasChanged();
-
-      // First, create a payment method using the card information
       PaymentResult createPaymentMethodResult = await _jsModule!.InvokeAsync<PaymentResult>("createPaymentMethod");
-      // Parse the result
-
       if (!createPaymentMethodResult.Success) {
         ErrorMessage = $"Error creating payment method: {createPaymentMethodResult.ErrorMessage}";
         return;
       }
-      // Now send the payment method ID to the server to process the payment
       PaymentResult result = await StripeService.SubmitPayment(createPaymentMethodResult.PaymentMethodId, (long)(Amount * 100));
-
       if (result.Success) {
         IsPaymentSuccessful = true;
         PaymentIntentId = result.PaymentMethodId;
