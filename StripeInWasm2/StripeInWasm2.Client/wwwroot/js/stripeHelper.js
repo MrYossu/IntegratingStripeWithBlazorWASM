@@ -85,7 +85,6 @@ function mountCardElement() {
 }
 
 export async function createPaymentMethod() {
-  console.log('createPaymentMethod - stripe: ' + stripe + ', cardElement: ' + cardElement);
   if (!stripe || !cardElement) {
     return {
       success: false,
@@ -102,7 +101,6 @@ export async function createPaymentMethod() {
     });
 
     if (error) {
-      console.log('createPaymentMethod - error: ' + error.message);
       return {
         success: false,
         error: error.message
@@ -110,7 +108,6 @@ export async function createPaymentMethod() {
     }
 
     // Notify .NET about the payment method
-    console.log('createPaymentMethod - paymentMethod: %o', paymentMethod);
     if (dotNetHelper) {
       dotNetHelper.invokeMethodAsync('PaymentMethodCreated', JSON.stringify(paymentMethod));
     }
