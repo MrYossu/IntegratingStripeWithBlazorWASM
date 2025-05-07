@@ -126,7 +126,7 @@ export async function createPaymentMethod() {
 export async function setupMessageListener(blazorObjectReference) {
   window.addEventListener('message', function (event) {
     if (typeof event.data === 'string' && event.data.startsWith('payment_intent_client_secret:')) {
-      blazorObjectReference.invokeMethodAsync('HandlePostMessage', event.data);
+      blazorObjectReference.invokeMethodAsync('HandlePost3DMessage', event.data);
     }
   });
 };
@@ -139,21 +139,6 @@ export async function retrievePaymentIntent(secret) {
     return result.paymentIntent;
   }
 }
-
-//export async function confirmCardPayment(secret, returnUri) {
-//  stripe.confirmCardPayment(secret,
-//    {
-//      payment_method: { card: cardElement },
-//      return_url: returnUri
-//    },
-//    { handleActions: false }
-//  ).then(function (result) {
-//    // TODO AYS - What do we do now? See step 2
-//    console.log('result: %o', result);
-//    // Handle result.error or result.paymentIntent
-//    // More details in Step 2.
-//  });
-//}
 
 export function cleanupStripe() {
   // Cleanup logic if needed

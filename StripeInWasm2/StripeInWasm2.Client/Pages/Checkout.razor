@@ -117,7 +117,7 @@
   }
 
   [JSInvokable]
-  public async Task HandlePostMessage(string message) {
+  public async Task HandlePost3DMessage(string message) {
     if (message.StartsWith("payment_intent_client_secret:")) {
       string secret = message.Substring(message.IndexOf(":") + 1);
       PaymentIntentDto paymentIntent = await _jsModule!.InvokeAsync<PaymentIntentDto>("retrievePaymentIntent", secret);
