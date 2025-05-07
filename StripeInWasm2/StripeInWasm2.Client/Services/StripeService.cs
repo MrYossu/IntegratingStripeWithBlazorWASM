@@ -1,6 +1,7 @@
 ﻿using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Components;
 using StripeInWasm2.Common.Models;
 
 namespace StripeInWasm2.Client.Services;
@@ -10,11 +11,13 @@ public class StripeService : IAsyncDisposable {
   private readonly IJSRuntime _jsRuntime;
   private IJSObjectReference? _module;
   private readonly DotNetObjectReference<StripeService> _dotNetRef;
+  private readonly NavigationManager _navigationManager;
 
-  public StripeService(HttpClient httpClient, IJSRuntime jsRuntime) {
+  public StripeService(HttpClient httpClient, IJSRuntime jsRuntime, NavigationManager navigationManager) {
     _httpClient = httpClient;
     _jsRuntime = jsRuntime;
     _dotNetRef = DotNetObjectReference.Create(this);
+    _navigationManager = navigationManager;
   }
 
   public async Task InitializeStripe() {
@@ -56,7 +59,8 @@ public class StripeService : IAsyncDisposable {
   public async Task<PaymentResult> SubmitPayment(string paymentMethodId, long amount) {
     ProcessPaymentRequest request = new() {
       PaymentMethodId = paymentMethodId,
-      Amount = amount
+      Amount = amount,
+      BaseUrl = _navigationManager.BaseUri
     };
 
     HttpResponseMessage response = await _httpClient.PostAsJsonAsync("/api/payment/process-payment", request);
@@ -67,9 +71,8 @@ public class StripeService : IAsyncDisposable {
     }
     string errorContent = await response.Content.ReadAsStringAsync();
     return new PaymentResult {
-      Success = false,
-      Status = "failed",
-      ErrorMessage = $"Payment processing failed: {errorContent}"
+      Status = PaymentResultStatuses.Error,
+      Message = $"Payment processing failed: {errorContent}"
     };
   }
 

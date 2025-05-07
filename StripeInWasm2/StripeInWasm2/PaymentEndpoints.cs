@@ -12,10 +12,7 @@ public static class PaymentEndpoints {
     group.MapPost("/prepare-payment-intent", async (PaymentService paymentService, PaymentIntentRequest request) => {
       try {
         // Create payment intent on the server, but only return the ID, not the secret
-        string paymentIntentId = await paymentService.CreatePaymentIntent(
-          request.Amount,
-          request.Currency.ToLower(),
-          request.Description);
+        string paymentIntentId = await paymentService.CreatePaymentIntent(request.Amount, request.Currency.ToLower(), request.Description);
 
         return Results.Ok(new { PaymentIntentId = paymentIntentId });
       }
@@ -27,8 +24,7 @@ public static class PaymentEndpoints {
     group.MapPost("/process-payment", async (PaymentService paymentService, ProcessPaymentRequest request) => {
       try {
         // Process the payment on the server using the payment method ID
-        PaymentResult result = await paymentService.ProcessPayment(request.PaymentMethodId, request.Amount);
-
+        PaymentResult result = await paymentService.ProcessPayment(request);
         return Results.Ok(result);
       }
       catch (Exception ex) {

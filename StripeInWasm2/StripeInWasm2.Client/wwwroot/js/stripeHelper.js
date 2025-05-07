@@ -1,5 +1,4 @@
-﻿// stripeHelper.js
-let stripe;
+﻿let stripe;
 let elements;
 let cardElement;
 let dotNetHelper;
@@ -122,6 +121,21 @@ export async function createPaymentMethod() {
       error: e.message
     };
   }
+}
+
+export async function confirmCardPayment(secret, returnUri) {
+  stripe.confirmCardPayment(secret,
+    {
+      payment_method: { card: cardElement },
+      return_url: returnUri
+    },
+    { handleActions: false }
+  ).then(function (result) {
+    // TODO AYS - What do we do now? See step 2
+    console.log('result: %o', result);
+    // Handle result.error or result.paymentIntent
+    // More details in Step 2.
+  });
 }
 
 export function cleanupStripe() {

@@ -21,7 +21,12 @@ public class PaymentService {
       Currency = currency,
       Description = description,
       SetupFutureUsage = "off_session",
-      CaptureMethod = "automatic"
+      CaptureMethod = "automatic",
+      PaymentMethodOptions = new PaymentIntentPaymentMethodOptionsOptions {
+        Card = new PaymentIntentPaymentMethodOptionsCardOptions {
+          RequestThreeDSecure = "any",
+        }
+      }
     };
 
     PaymentIntentService service = new();
@@ -31,51 +36,47 @@ public class PaymentService {
     return paymentIntent.Id;
   }
 
-  public async Task<PaymentResult> ProcessPayment(string paymentMethodId, long amount) {
-    if (string.IsNullOrEmpty(paymentMethodId)) {
+  public async Task<PaymentResult> ProcessPayment(ProcessPaymentRequest request) {
+    if (string.IsNullOrEmpty(request.PaymentMethodId)) {
       throw new ArgumentException("Payment method ID is required");
     }
 
     try {
       PaymentIntentCreateOptions options = new() {
-        Amount = amount,
+        Amount = request.Amount,
         Currency = "gbp",
-        PaymentMethod = paymentMethodId,
+        PaymentMethod = request.PaymentMethodId,
         Confirm = true,
         ConfirmationMethod = "automatic",
-        ReturnUrl = "https://www.pixata.co.uk",
+        ReturnUrl = $"{request.BaseUrl}checkout",
         PaymentMethodTypes = ["card"]
       };
 
       PaymentIntentService service = new();
       PaymentIntent paymentIntent = await service.CreateAsync(options);
-
       return paymentIntent.Status switch {
         "succeeded" => new PaymentResult {
-          Success = true,
           PaymentMethodId = paymentIntent.Id,
-          Status = paymentIntent.Status
+          Status = PaymentResultStatuses.Success
         },
         "requires_action" => new PaymentResult {
-          Success = false,
           PaymentMethodId = paymentIntent.Id,
-          Status = paymentIntent.Status,
-          ErrorMessage = $"This payment requires additional authentication steps. NextAction: {paymentIntent.NextAction}",
+          Status = PaymentResultStatuses.Redirect,
+          Message = paymentIntent.NextAction.RedirectToUrl.Url,
+          ReturnUri = options.ReturnUrl,
           ClientSecret = paymentIntent.ClientSecret // This is needed for 3D Secure
         },
         _ => new PaymentResult {
-          Success = false,
           PaymentMethodId = paymentIntent.Id,
-          Status = paymentIntent.Status,
-          ErrorMessage = $"Payment failed with status: {paymentIntent.Status}"
+          Status = PaymentResultStatuses.Declined,
+          Message = $"Payment failed with status: {paymentIntent.Status}"
         }
       };
     }
     catch (StripeException e) {
       return new PaymentResult {
-        Success = false,
-        Status = "error",
-        ErrorMessage = e.Message
+        Status = PaymentResultStatuses.Error,
+        Message = e.Message
       };
     }
   }

@@ -1,9 +1,9 @@
 @page "/checkout"
 @using StripeInWasm2.Client.Services
 @using StripeInWasm2.Common.Models
+@implements IAsyncDisposable
 @inject StripeService StripeService
 @inject IJSRuntime JsRuntime
-@implements IAsyncDisposable
 
 <div class="container">
   <h1>Checkout</h1>
@@ -13,11 +13,11 @@
       <div class="card">
         <div class="card-body">
           <h5 class="card-title">Order Summary</h5>
-          <p class="card-text">Total: $@Amount.ToString("0.00")</p>
+          <p class="card-text">Total: &pound;@Amount.ToString("0.00")</p>
 
           <EditForm Model="@this" OnSubmit="@ProcessPayment">
             <div class="mb-3">
-              <label for="amount" class="form-label">Amount ($)</label>
+              <label for="amount" class="form-label">Amount (&pound;)</label>
               <InputNumber id="amount" class="form-control" @bind-Value="Amount" />
             </div>
 
@@ -48,22 +48,21 @@
 </div>
 
 @code {
-  private decimal Amount { get; set; } = 19.99m;
+  private decimal Amount { get; set; }
   private bool IsProcessing { get; set; }
   private bool IsPaymentSuccessful { get; set; }
   private string ErrorMessage { get; set; } = "";
   private string PaymentIntentId { get; set; } = "";
   private IJSObjectReference? _jsModule;
 
-  protected override async Task OnInitializedAsync() =>
-    await base.OnInitializedAsync();
-
   protected override async Task OnAfterRenderAsync(bool firstRender) {
     if (firstRender) {
+      Amount = DateTime.Now.Microsecond;
       try {
         _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/stripeHelper.js");
         await StripeService.InitializeStripe();
-      } catch (Exception ex) {
+      }
+      catch (Exception ex) {
         ErrorMessage = $"Error initializing payment: {ex.Message}";
         StateHasChanged();
       }
@@ -77,20 +76,28 @@
       ErrorMessage = "";
       StateHasChanged();
       PaymentResult createPaymentMethodResult = await _jsModule!.InvokeAsync<PaymentResult>("createPaymentMethod");
-      if (!createPaymentMethodResult.Success) {
-        ErrorMessage = $"Error creating payment method: {createPaymentMethodResult.ErrorMessage}";
+      if (createPaymentMethodResult.Status == PaymentResultStatuses.Error) {
+        ErrorMessage = $"Error creating payment method: {createPaymentMethodResult.Message}";
         return;
       }
       PaymentResult result = await StripeService.SubmitPayment(createPaymentMethodResult.PaymentMethodId, (long)(Amount * 100));
-      if (result.Success) {
-        IsPaymentSuccessful = true;
-        PaymentIntentId = result.PaymentMethodId;
-      } else {
-        ErrorMessage = result.ErrorMessage;
+      switch (result.Status) {
+        case PaymentResultStatuses.Success:
+          IsPaymentSuccessful = true;
+          PaymentIntentId = result.PaymentMethodId;
+          break;
+        case PaymentResultStatuses.Declined:
+          ErrorMessage = result.Message;
+          break;
+        case PaymentResultStatuses.Redirect:
+          ErrorMessage = $"Redirect to {result.Message}. Return URI: {result.ReturnUri}. Client secret: {result.ClientSecret}";
+          break;
       }
-    } catch (Exception ex) {
+    }
+    catch (Exception ex) {
       ErrorMessage = $"Error processing payment: {ex.Message}";
-    } finally {
+    }
+    finally {
       IsProcessing = false;
       StateHasChanged();
     }
@@ -101,4 +108,5 @@
       await _jsModule.DisposeAsync();
     }
   }
+
 }
