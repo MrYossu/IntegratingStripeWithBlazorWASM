@@ -1,3 +1,4 @@
+using StripeInWasm2.Client.Services;
 using StripeInWasm2.Server;
 using StripeInWasm2.Server.Components;
 using StripeInWasm2.Server.Services;
@@ -8,6 +9,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
   .AddInteractiveWebAssemblyComponents();
 
+builder.Services.AddScoped(sp => new HttpClient());
+builder.Services.AddScoped<StripeService>();
 builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stripe"));
 builder.Services.AddScoped<PaymentService>();
 
