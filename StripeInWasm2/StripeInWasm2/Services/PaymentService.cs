@@ -48,7 +48,7 @@ public class PaymentService {
         PaymentMethod = request.PaymentMethodId,
         Confirm = true,
         ConfirmationMethod = "automatic",
-        ReturnUrl = $"{request.BaseUrl}checkout",
+        ReturnUrl = $"{request.BaseUrl}post3d.html",
         PaymentMethodTypes = ["card"]
       };
 

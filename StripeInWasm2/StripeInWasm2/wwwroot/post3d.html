@@ -1,0 +1,19 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title></title>
+</head>
+<body>
+  <h3>Processing...</h3>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(queryString);
+      if (urlParams.get('payment_intent_client_secret')) {
+        window.parent.postMessage('payment_intent_client_secret:' + urlParams.get('payment_intent_client_secret'), '*');
+      }
+    });
+  </script>
+</body>
+</html>

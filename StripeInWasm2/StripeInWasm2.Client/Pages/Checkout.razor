@@ -47,19 +47,31 @@
   </div>
 </div>
 
+@if (_show3dModal) {
+  <div id="stripeModal">
+    <iframe src="@_3dUrl" width="600px" height="600px"></iframe>
+  </div>
+}
+
 @code {
-  private decimal Amount { get; set; }
+  private decimal Amount { get; set; } = 12.34M;
   private bool IsProcessing { get; set; }
   private bool IsPaymentSuccessful { get; set; }
   private string ErrorMessage { get; set; } = "";
   private string PaymentIntentId { get; set; } = "";
   private IJSObjectReference? _jsModule;
+  private DotNetObjectReference<Checkout>? _objectReference = null!;
+  private bool _show3dModal;
+  private string _3dUrl = "";
+
+  protected override void OnInitialized() =>
+    _objectReference = DotNetObjectReference.Create(this);
 
   protected override async Task OnAfterRenderAsync(bool firstRender) {
     if (firstRender) {
-      Amount = DateTime.Now.Microsecond;
       try {
         _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/stripeHelper.js");
+        await _jsModule.InvokeVoidAsync("setupMessageListener", _objectReference);
         await StripeService.InitializeStripe();
       }
       catch (Exception ex) {
@@ -90,7 +102,8 @@
           ErrorMessage = result.Message;
           break;
         case PaymentResultStatuses.Redirect:
-          ErrorMessage = $"Redirect to {result.Message}. Return URI: {result.ReturnUri}. Client secret: {result.ClientSecret}";
+          _3dUrl = result.Message;
+          _show3dModal = true;
           break;
       }
     }
@@ -103,9 +116,28 @@
     }
   }
 
+  [JSInvokable]
+  public async Task HandlePostMessage(string message) {
+    if (message.StartsWith("payment_intent_client_secret:")) {
+      string secret = message.Substring(message.IndexOf(":") + 1);
+      PaymentIntentDto paymentIntent = await _jsModule!.InvokeAsync<PaymentIntentDto>("retrievePaymentIntent", secret);
+      Console.WriteLine($"Checkout - Got PI. Status: {paymentIntent.Status}, Id: {paymentIntent.Id}");
+      PaymentIntentId = paymentIntent.Id;
+      _show3dModal = false;
+    } else {
+      Console.WriteLine($"Checkout - unknown message: {message}");
+      ErrorMessage = $"Unknown error message: {message}";
+      _show3dModal = false;
+    }
+    await InvokeAsync(StateHasChanged);
+  }
+
   public async ValueTask DisposeAsync() {
     if (_jsModule is not null) {
       await _jsModule.DisposeAsync();
+    }
+    if (_objectReference is not null) {
+      _objectReference.Dispose();
     }
   }
 
