@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Net;
+using Microsoft.Extensions.Options;
 using Stripe;
 using StripeInWasm2.Common.Models;
 
@@ -75,7 +76,7 @@ public class PaymentService {
     }
     catch (StripeException e) {
       return new PaymentResult {
-        Status = PaymentResultStatuses.Error,
+        Status = e.HttpStatusCode == HttpStatusCode.PaymentRequired ? PaymentResultStatuses.Declined : PaymentResultStatuses.Error,
         Message = e.Message
       };
     }
