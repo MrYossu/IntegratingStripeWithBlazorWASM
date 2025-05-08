@@ -123,12 +123,14 @@ export async function createPaymentMethod() {
   }
 }
 
+let messageListener = null;
 export async function setupMessageListener(blazorObjectReference) {
-  window.addEventListener('message', function (event) {
+  messageListener = function (event) {
     if (typeof event.data === 'string' && event.data.startsWith('payment_intent_client_secret:')) {
       blazorObjectReference.invokeMethodAsync('HandlePost3DMessage', event.data);
     }
-  });
+  };
+  window.addEventListener('message', messageListener);
 };
 
 export async function retrievePaymentIntent(secret) {
@@ -140,10 +142,13 @@ export async function retrievePaymentIntent(secret) {
   }
 }
 
-export function cleanupStripe() {
-  // Cleanup logic if needed
+export function cleanup() {
   stripe = null;
   elements = null;
   cardElement = null;
   dotNetHelper = null;
+  if (messageListener) {
+    window.removeEventListener('message', messageListener);
+    messageListener = null;
+  }
 }
