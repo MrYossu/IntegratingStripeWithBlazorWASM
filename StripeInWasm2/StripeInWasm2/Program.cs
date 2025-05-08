@@ -26,9 +26,12 @@ if (app.Environment.IsDevelopment()) {
 }
 
 app.UseHttpsRedirection();
-
-
 app.UseAntiforgery();
+
+app.Use(async (context, next) => {
+  context.Response.Headers.Add("Permissions-Policy", "payment=(self \"https://js.stripe.com\" \"https://hooks.stripe.com\"), publickey-credentials-get=(self \"https://js.stripe.com\" \"https://hooks.stripe.com\")");
+  await next();
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
