@@ -105,6 +105,9 @@
           _3dUrl = result.Message;
           _show3dModal = true;
           break;
+        case PaymentResultStatuses.Error:
+          ErrorMessage = result.Message;
+          break;
       }
     }
     catch (Exception ex) {

@@ -76,7 +76,10 @@ public class PaymentService {
     }
     catch (StripeException e) {
       return new PaymentResult {
-        Status = e.HttpStatusCode == HttpStatusCode.PaymentRequired ? PaymentResultStatuses.Declined : PaymentResultStatuses.Error,
+        // For some reason, the API throws an error if the card is declined, so we need to check the HTTP status code to determine if this was a genuine error, or just the card being declined
+        Status = e.HttpStatusCode == HttpStatusCode.PaymentRequired 
+          ? PaymentResultStatuses.Declined 
+          : PaymentResultStatuses.Error,
         Message = e.Message
       };
     }
