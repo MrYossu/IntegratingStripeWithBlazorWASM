@@ -1,4 +1,5 @@
 @page "/checkout"
+@using StripeInWasm2.Client.Models
 @using StripeInWasm2.Client.Services
 @using StripeInWasm2.Common.Models
 @implements IAsyncDisposable
@@ -126,6 +127,7 @@
       PaymentIntentDto paymentIntent = await _jsModule!.InvokeAsync<PaymentIntentDto>("retrievePaymentIntent", secret);
       Console.WriteLine($"Checkout - Got PI. Status: {paymentIntent.Status}, Id: {paymentIntent.Id}");
       PaymentIntentId = paymentIntent.Id;
+      IsPaymentSuccessful = true;
       _show3dModal = false;
     } else {
       Console.WriteLine($"Checkout - unknown message: {message}");
