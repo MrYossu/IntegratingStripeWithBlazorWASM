@@ -33,29 +33,6 @@ public class StripeService : IAsyncDisposable {
     }
   }
 
-  public async Task<string> PreparePaymentIntent(decimal amount, string currency = "gbp", string description = "") {
-    // Convert decimal to cents (long) for Stripe
-    long pennies = (long)(amount * 100);
-
-    PaymentIntentRequest request = new() {
-      Amount = pennies,
-      Currency = currency,
-      Description = description
-    };
-
-    HttpResponseMessage response = await _httpClient.PostAsJsonAsync("/api/payment/prepare-payment-intent", request);
-
-    if (response.IsSuccessStatusCode) {
-      PaymentIntentResponse? paymentIntentResponse = await response.Content.ReadFromJsonAsync<PaymentIntentResponse>();
-      if (paymentIntentResponse != null && !string.IsNullOrEmpty(paymentIntentResponse.PaymentIntentId)) {
-        return paymentIntentResponse.PaymentIntentId;
-      }
-    }
-
-    string errorContent = await response.Content.ReadAsStringAsync();
-    throw new Exception($"Failed to prepare payment intent: {errorContent}");
-  }
-
   public async Task<PaymentResult> SubmitPayment(string paymentMethodId, long amount) {
     ProcessPaymentRequest request = new() {
       PaymentMethodId = paymentMethodId,
