@@ -9,7 +9,7 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      const urlParams = new URLSearchParams(queryString);
+      const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment_intent_client_secret')) {
         window.parent.postMessage('payment_intent_client_secret:' + urlParams.get('payment_intent_client_secret'), '*');
       }
