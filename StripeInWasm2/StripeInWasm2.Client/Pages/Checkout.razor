@@ -1,9 +1,9 @@
 @page "/checkout"
 @using StripeInWasm2.Client.Models
-@using StripeInWasm2.Client.Services
 @using StripeInWasm2.Common.Models
 @implements IAsyncDisposable
-@inject StripeService StripeService
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 
 <div class="container">
@@ -61,19 +61,21 @@
   private string ErrorMessage { get; set; } = "";
   private string PaymentIntentId { get; set; } = "";
   private IJSObjectReference? _jsModule;
-  private DotNetObjectReference<Checkout>? _objectReference = null!;
+  private DotNetObjectReference<Checkout>? _dotNetObject;
   private bool _show3dModal;
   private string _3dUrl = "";
 
   protected override void OnInitialized() =>
-    _objectReference = DotNetObjectReference.Create(this);
+    _dotNetObject = DotNetObjectReference.Create(this);
 
   protected override async Task OnAfterRenderAsync(bool firstRender) {
     if (firstRender) {
       try {
         _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/stripeHelper.js");
-        await _jsModule.InvokeVoidAsync("setupMessageListener", _objectReference);
-        await StripeService.InitializeStripe();
+        await _jsModule.InvokeVoidAsync("setupMessageListener", _dotNetObject);
+        StripeConfig? configResponse = await HttpClient.GetFromJsonAsync<StripeConfig>("/api/payment/config");
+        // TODO AYS - Should check that configResponse is not null, and that PublishableKey is not empty/null
+        await _jsModule.InvokeVoidAsync("initializeStripe", configResponse.PublishableKey, _dotNetObject);
       }
       catch (Exception ex) {
         ErrorMessage = $"Error initializing payment: {ex.Message}";
@@ -93,22 +95,33 @@
         ErrorMessage = $"Error creating payment method: {createPaymentMethodResult.Message}";
         return;
       }
-      PaymentResult result = await StripeService.SubmitPayment(createPaymentMethodResult.PaymentMethodId, (long)(Amount * 100));
-      switch (result.Status) {
-        case PaymentResultStatuses.Success:
-          IsPaymentSuccessful = true;
-          PaymentIntentId = result.PaymentMethodId;
-          break;
-        case PaymentResultStatuses.Declined:
-          ErrorMessage = result.Message;
-          break;
-        case PaymentResultStatuses.Redirect:
-          _3dUrl = result.Message;
-          _show3dModal = true;
-          break;
-        case PaymentResultStatuses.Error:
-          ErrorMessage = result.Message;
-          break;
+      ProcessPaymentRequest request = new() {
+        PaymentMethodId = createPaymentMethodResult.PaymentMethodId,
+        Amount = (long)(Amount * 100),
+        BaseUrl = NavigationManager.BaseUri
+      };
+      HttpResponseMessage response = await HttpClient.PostAsJsonAsync("/api/payment/process-payment", request);
+      if (!response.IsSuccessStatusCode) {
+        string errorContent = await response.Content.ReadAsStringAsync();
+        ErrorMessage = $"Payment processing failed: {errorContent}";
+      } else {
+        PaymentResult result = await response.Content.ReadFromJsonAsync<PaymentResult>() ?? new();
+        switch (result.Status) {
+          case PaymentResultStatuses.Success:
+            IsPaymentSuccessful = true;
+            PaymentIntentId = result.PaymentMethodId;
+            break;
+          case PaymentResultStatuses.Declined:
+            ErrorMessage = result.Message;
+            break;
+          case PaymentResultStatuses.Redirect:
+            _3dUrl = result.Message;
+            _show3dModal = true;
+            break;
+          case PaymentResultStatuses.Error:
+            ErrorMessage = result.Message;
+            break;
+        }
       }
     }
     catch (Exception ex) {
@@ -126,8 +139,13 @@
       string secret = message.Substring(message.IndexOf(":") + 1);
       PaymentIntentDto paymentIntent = await _jsModule!.InvokeAsync<PaymentIntentDto>("retrievePaymentIntent", secret);
       Console.WriteLine($"Checkout - Got PI. Status: {paymentIntent.Status}, Id: {paymentIntent.Id}");
-      PaymentIntentId = paymentIntent.Id;
-      IsPaymentSuccessful = true;
+      if (paymentIntent.Status == "succeeded") {
+        PaymentIntentId = paymentIntent.Id;
+        IsPaymentSuccessful = true;
+      } else {
+        ErrorMessage = "3D authorisation failed";
+        IsPaymentSuccessful = false;
+      }
       _show3dModal = false;
     } else {
       Console.WriteLine($"Checkout - unknown message: {message}");
@@ -142,8 +160,8 @@
       await _jsModule.InvokeVoidAsync("cleanup");
       await _jsModule.DisposeAsync();
     }
-    if (_objectReference is not null) {
-      _objectReference.Dispose();
+    if (_dotNetObject is not null) {
+      _dotNetObject.Dispose();
     }
   }
 
