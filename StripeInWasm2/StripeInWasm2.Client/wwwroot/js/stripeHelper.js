@@ -106,11 +106,6 @@ export async function createPaymentMethod() {
       };
     }
 
-    // Notify .NET about the payment method
-    if (dotNetHelper) {
-      dotNetHelper.invokeMethodAsync('PaymentMethodCreated', JSON.stringify(paymentMethod));
-    }
-
     return {
       success: true,
       paymentMethodId: paymentMethod.id

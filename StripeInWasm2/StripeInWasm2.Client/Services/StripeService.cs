@@ -53,15 +53,6 @@ public class StripeService : IAsyncDisposable {
     };
   }
 
-  [JSInvokable]
-  public void PaymentMethodCreated(string paymentMethodJson) {
-    // This method will be called from JavaScript when a payment method is created
-    PaymentMethodResponse? paymentMethod = JsonSerializer.Deserialize<PaymentMethodResponse>(paymentMethodJson);
-
-    // Store the payment method id or other relevant data
-    // You might want to store this in a property that your Razor component can access
-  }
-
   public async ValueTask DisposeAsync() {
     if (_module != null) {
       await _module.InvokeVoidAsync("cleanupStripe");
