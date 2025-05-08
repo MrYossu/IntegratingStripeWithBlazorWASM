@@ -5,7 +5,10 @@ namespace StripeInWasm2.Server;
 
 public static class PaymentEndpoints {
   public static RouteGroupBuilder MapPaymentApi(this RouteGroupBuilder group) {
-    group.MapGet("/config", (PaymentService paymentService) => Results.Ok(new { PublishableKey = paymentService.GetPublishableKey() }));
+    group.MapGet("/config", (PaymentService paymentService) => 
+      Results.Ok(new {
+        PublishableKey = paymentService.GetPublishableKey()
+      }));
 
     group.MapPost("/prepare-payment-intent", async (PaymentService paymentService, PaymentIntentRequest request) => {
       try {

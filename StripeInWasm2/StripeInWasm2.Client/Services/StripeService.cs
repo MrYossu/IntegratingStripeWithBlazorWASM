@@ -1,11 +1,12 @@
 ﻿using Microsoft.JSInterop;
 using System.Net.Http.Json;
-using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using StripeInWasm2.Client.Models;
 using StripeInWasm2.Common.Models;
 
 namespace StripeInWasm2.Client.Services;
 
+// TODO AYS - Not sure why we need a separate service here, when some of what it does duplicates code in the checkout component. I'm all for neat separation of concerns, but I think this might be a false one
 public class StripeService : IAsyncDisposable {
   private readonly HttpClient _httpClient;
   private readonly IJSRuntime _jsRuntime;
@@ -54,8 +55,8 @@ public class StripeService : IAsyncDisposable {
   }
 
   public async ValueTask DisposeAsync() {
-    if (_module != null) {
-      await _module.InvokeVoidAsync("cleanupStripe");
+    if (_module is not null) {
+      await _module.InvokeVoidAsync("cleanup");
       await _module.DisposeAsync();
     }
     _dotNetRef.Dispose();
