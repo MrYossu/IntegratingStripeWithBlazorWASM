@@ -1,0 +1,31 @@
+﻿@if (Visible) {
+  <div class="overlay-background">
+    <div class="overlay-content" style="@($"width: {Width}; height: {Height}")">
+      @if (ShowCloseButton) {
+        <button @onclick="@(() => Visible = false)" class="close-button">X</button>
+      }
+      @if (ChildContent is not null) {
+        @ChildContent
+      }
+    </div>
+  </div>
+}
+
+@code {
+
+  [Parameter]
+  public bool Visible { get; set; }
+
+  [Parameter]
+  public bool ShowCloseButton { get; set; } = true;
+
+  [Parameter]
+  public string Width { get; set; } = "600px";
+
+  [Parameter]
+  public string Height { get; set; } = "600px";
+
+  [Parameter]
+  public RenderFragment? ChildContent { get; set; }
+
+}

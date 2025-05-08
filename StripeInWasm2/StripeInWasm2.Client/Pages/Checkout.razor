@@ -48,11 +48,11 @@
   </div>
 </div>
 
-@if (_show3dModal) {
-  <div id="stripeModal">
+<Overlay Visible="@_show3dModal" ShowCloseButton="false">
+  <div style="width: 100%; height: 100%;">
     <iframe src="@_3dUrl" width="600px" height="600px"></iframe>
   </div>
-}
+</Overlay>
 
 @code {
   private decimal Amount { get; set; } = 12.34M;
