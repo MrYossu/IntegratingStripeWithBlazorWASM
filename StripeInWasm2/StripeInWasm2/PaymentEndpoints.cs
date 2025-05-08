@@ -1,7 +1,5 @@
 ﻿using StripeInWasm2.Common.Models;
 using StripeInWasm2.Server.Services;
-using PaymentIntentRequest = StripeInWasm2.Common.Models.PaymentIntentRequest;
-using PaymentResult = StripeInWasm2.Common.Models.PaymentResult;
 
 namespace StripeInWasm2.Server;
 
