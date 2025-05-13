@@ -27,7 +27,9 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.Use(async (context, next) => {
-  context.Response.Headers.Add("Permissions-Policy", "payment=(self \"https://js.stripe.com\" \"https://hooks.stripe.com\"), publickey-credentials-get=(self \"https://js.stripe.com\" \"https://hooks.stripe.com\")");
+  if(!context.Response.Headers.ContainsKey("Permissions-Policy")) {
+    context.Response.Headers.Add("Permissions-Policy", "payment=(self \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://api.stripe.com\" \"https://maps.googleapis.com\"), publickey-credentials-get=(self \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://api.stripe.com\" \"https://maps.googleapis.com\")");
+  }
   await next();
 });
 
