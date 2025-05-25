@@ -28,7 +28,7 @@ app.UseAntiforgery();
 
 app.Use(async (context, next) => {
   if(!context.Response.Headers.ContainsKey("Permissions-Policy")) {
-    context.Response.Headers.Add("Permissions-Policy", "payment=(self \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://api.stripe.com\" \"https://maps.googleapis.com\"), publickey-credentials-get=(self \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://api.stripe.com\" \"https://maps.googleapis.com\")");
+    context.Response.Headers.Add("Permissions-Policy", "payment=(self \"https://hooks.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://api.stripe.com\" \"https://maps.googleapis.com\"), publickey-credentials-get=(self \"https://hooks.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://api.stripe.com\" \"https://maps.googleapis.com\")");
   }
   await next();
 });

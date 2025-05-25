@@ -16,32 +16,11 @@ public class PaymentService {
   public string GetPublishableKey() =>
     _stripeOptions.PublishableKey;
 
-  public async Task<string> CreatePaymentIntent(long amount, string currency, string description) {
-    PaymentIntentCreateOptions options = new() {
-      Amount = amount,
-      Currency = currency,
-      Description = description,
-      SetupFutureUsage = "off_session",
-      CaptureMethod = "automatic",
-      PaymentMethodOptions = new PaymentIntentPaymentMethodOptionsOptions {
-        Card = new PaymentIntentPaymentMethodOptionsCardOptions {
-          RequestThreeDSecure = "any",
-        }
-      }
-    };
-
-    PaymentIntentService service = new();
-    PaymentIntent paymentIntent = await service.CreateAsync(options);
-
-    // Return only the ID, not the client secret
-    return paymentIntent.Id;
-  }
-
   public async Task<PaymentResult> ProcessPayment(ProcessPaymentRequest request) {
     if (string.IsNullOrEmpty(request.PaymentMethodId)) {
       throw new ArgumentException("Payment method ID is required");
     }
-
+    Console.WriteLine($"PaymentService.ProcessPayment - PaymentIntentId: {request.PaymentIntentId}, PaymentMethodId: {request.PaymentMethodId}");
     try {
       PaymentIntentCreateOptions options = new() {
         Amount = request.Amount,

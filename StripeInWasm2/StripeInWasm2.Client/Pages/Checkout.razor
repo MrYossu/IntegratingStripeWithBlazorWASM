@@ -95,6 +95,7 @@
         ErrorMessage = $"Error creating payment method: {createPaymentMethodResult.Message}";
         return;
       }
+      Console.WriteLine($"Checkout - PaymentMethodId from Stripe.js: {createPaymentMethodResult.PaymentMethodId}");
       ProcessPaymentRequest request = new() {
         PaymentMethodId = createPaymentMethodResult.PaymentMethodId,
         Amount = (long)(Amount * 100),
@@ -108,6 +109,7 @@
         PaymentResult result = await response.Content.ReadFromJsonAsync<PaymentResult>() ?? new();
         switch (result.Status) {
           case PaymentResultStatuses.Success:
+            Console.WriteLine($"Checkout (success) - PaymentMethodId back from service: {result.PaymentMethodId}");
             IsPaymentSuccessful = true;
             PaymentIntentId = result.PaymentMethodId;
             break;
@@ -137,6 +139,7 @@
   public async Task HandlePost3DMessage(string message) {
     if (message.StartsWith("payment_intent_client_secret:")) {
       string secret = message.Substring(message.IndexOf(":") + 1);
+      Console.WriteLine($"Checkout - Secret back from 3D auth (Stripe.js): {secret}");
       PaymentIntentDto paymentIntent = await _jsModule!.InvokeAsync<PaymentIntentDto>("retrievePaymentIntent", secret);
       Console.WriteLine($"Checkout - Got PI. Status: {paymentIntent.Status}, Id: {paymentIntent.Id}");
       if (paymentIntent.Status == "succeeded") {
